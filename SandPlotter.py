@@ -1,3 +1,6 @@
+from tkinter import *
+import tkinter.font as tkFont
+import threading
 from datetime import datetime
 import time
 import serial
@@ -10,6 +13,36 @@ pixels = neopixel.NeoPixel(board.D18, 180)
 INTERVAL = 1  # seconds between loops
 VALID_DAYS = [0,1,2,3,4] # days of week to run program MONDAY TO FRIDAY
 VALID_HOURS = (9, 24)  # (start, stop) hours 24 hour time
+M_coord = [0,0]
+
+
+#setup close action for if [X] button is pushed
+def close():
+    window.destroy()
+    
+#declare window
+window = Tk()
+
+#set window title
+window.title("Sand Plotter")
+
+#set window width and height
+window.configure(width=window.winfo_screenwidth(), height=window.winfo_screenheight())
+#window.configure(width=500, height=480)
+window.attributes('-fullscreen', True)
+
+#set window background color
+window.configure(bg='lightgray')
+            
+#setup close button
+btn_close = Button(text="X", command = close)
+btn_close.place(relx = 1.0, y = 0, anchor="ne")
+
+#setup Coordinate Text
+x_coord = Button(justify = "center", text="X: " + str(M_coord[0]) + " |Y: " + str(M_coord[1]))
+x_coord["font"] = tkFont.Font(size = 40)
+x_coord.place(relx = 0.5, rely = 0.5, anchor = CENTER)
+#x_coord.place(x = window.winfo_screenwidth() / 2 + 40, rely = 0.5, anchor="ne")
 
 def GRBL_Wake(s):
     s.write("\r\n\r\n".encode())
@@ -36,8 +69,8 @@ def Gcode_Parse(Gcode_Coords):
     #print("GCode X: " + M[0])
     M[1] = Gcode_Coords[(Gcode_Coords.find("Y")+1):len(Gcode_Coords)]
     #print("GCode Y: " + M[1])
-    print("Next Coordinates")
-    print("X: " + M[0] + " |Y: " + M[1])
+    #print("Next Coordinates")
+    #print("X: " + M[0] + " |Y: " + M[1])
     return M
     
 def MWC_Parse(MWC_Coords):
@@ -48,6 +81,8 @@ def MWC_Parse(MWC_Coords):
     #print("Machine X: " + MWC[0])
     MWC[1] = MWC_Coords[((MWC_Coords.find(",")+1)):(MWC_Coords.find(",", MWC_Coords.find(",") + 1))]
     #print("Machine Y: " + MWC[1])
+    x_coord.config(text=("X: " + MWC[0] + " |Y: " + MWC[1]))
+    print("X: " + MWC[0] + " |Y: " + MWC[1])
     return MWC
 
 def Home(s):
@@ -142,7 +177,6 @@ def GRBL_Sender():
             M_dist_to_next = Dist_Next(M_coord, M_next)
             #print("X: " + M_coord[0] + " |Y: " + M_coord[1] + " |Target: X: " + str(M_next[0]) + " |Y: " + str(M_next[1]))
             #print("Distance To Next: " + "{:.2f}".format(M_dist_to_next))
-            build(M_coord[0],M_coord[1])
         #while(grbl_out_str.find("Idle") < 0):
             #grbl_out_str = Get_status(s)
         
@@ -174,22 +208,19 @@ def check_program_window() -> bool:
         return True
     else:
         return False
-        
 
 def start() -> None:
-
-    while True:  # keep program looping
+    while True:
         if check_program_window():
             run_program()
-
-        time.sleep(INTERVAL)
-
-
+        
 #This just starts the program 
 if __name__ == "__main__":
     pixels.fill((255,255,255))
-    start()
+    plotter_thread = threading.Thread(target = start, daemon = True)
     
-
-
-
+    plotter_thread.start()
+    
+    window.mainloop()
+    #start()
+    #_thread.start_new_thread(run_program())
