@@ -13,7 +13,7 @@ pixels = neopixel.NeoPixel(board.D18, 180)
 INTERVAL = 1  # seconds between loops
 VALID_DAYS = [0,1,2,3,4] # days of week to run program MONDAY TO FRIDAY
 VALID_HOURS = (9, 24)  # (start, stop) hours 24 hour time
-M_coord = [0,0]
+M_coord = [0,0] # machine coordinates global variable
 
 
 #setup close action for if [X] button is pushed
@@ -42,7 +42,6 @@ btn_close.place(relx = 1.0, y = 0, anchor="ne")
 x_coord = Button(justify = "center", text="X: " + str(M_coord[0]) + " |Y: " + str(M_coord[1]))
 x_coord["font"] = tkFont.Font(size = 40)
 x_coord.place(relx = 0.5, rely = 0.5, anchor = CENTER)
-#x_coord.place(x = window.winfo_screenwidth() / 2 + 40, rely = 0.5, anchor="ne")
 
 def GRBL_Wake(s):
     s.write("\r\n\r\n".encode())
@@ -70,7 +69,7 @@ def Gcode_Parse(Gcode_Coords):
     M[1] = Gcode_Coords[(Gcode_Coords.find("Y")+1):len(Gcode_Coords)]
     #print("GCode Y: " + M[1])
     #print("Next Coordinates")
-    #print("X: " + M[0] + " |Y: " + M[1])
+    #print("X: " + "{:.1f}".format(M[0]) + " |Y: " + "{:.2f}".format(M[1]))
     return M
     
 def MWC_Parse(MWC_Coords):
@@ -97,7 +96,7 @@ def Home(s):
     
 def Gcode_send_next(s, line):
     GRBL_Wake(s)
-    s.write(('F1000\n').encode())
+    s.write(('F1000\n').encode()) # Prevents error due to sender idling between gcode statements
     grbl_out = s.readline() # Wait for grbl response with carriage return
     grbl_out_str=str(grbl_out)
     l = line.strip() # Strip all EOL characters for streaming
@@ -177,8 +176,6 @@ def GRBL_Sender():
             M_dist_to_next = Dist_Next(M_coord, M_next)
             #print("X: " + M_coord[0] + " |Y: " + M_coord[1] + " |Target: X: " + str(M_next[0]) + " |Y: " + str(M_next[1]))
             #print("Distance To Next: " + "{:.2f}".format(M_dist_to_next))
-        #while(grbl_out_str.find("Idle") < 0):
-            #grbl_out_str = Get_status(s)
         
     # Wait for gcode execute to complete
     Check_for_completion(s)        
@@ -187,19 +184,8 @@ def GRBL_Sender():
     f.close()
     s.close()
 
-
-
-def run_program():
-    #stuff to run 9am-7pm Mon-Sat
-    print("sand pltter is running")
-    GRBL_Sender()
-    pass
-
-
-def check_program_window() -> bool:
-        
-    dt = datetime.now()
-    
+def check_program_window() -> bool:   
+    dt = datetime.now()    
     print(dt.weekday())
     if dt.weekday() not in VALID_DAYS:
         return False  # not a valid day
@@ -212,7 +198,9 @@ def check_program_window() -> bool:
 def start() -> None:
     while True:
         if check_program_window():
-            run_program()
+            #stuff to run 9am-7pm Mon-Sat
+            print("sand pltter is running")
+            GRBL_Sender()
         
 #This just starts the program 
 if __name__ == "__main__":
@@ -220,7 +208,4 @@ if __name__ == "__main__":
     plotter_thread = threading.Thread(target = start, daemon = True)
     
     plotter_thread.start()
-    
     window.mainloop()
-    #start()
-    #_thread.start_new_thread(run_program())
